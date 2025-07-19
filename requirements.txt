@@ -1,0 +1,3 @@
+systemd-python==235
+watchdog==6.0.0
+loguru==0.7.3
