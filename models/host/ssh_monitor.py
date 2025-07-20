@@ -3,6 +3,12 @@ from datetime import datetime
 import time
 import json
 from models.host.sudo_logs import format_sudo_command
+import subprocess
+
+
+#table for keeping track of already failed attemprs users
+failed_hosts = {}
+
 #monitoring all logs after service started
 def read_logs_from_now(filepath:str):
     with open(filepath) as log:
@@ -69,10 +75,34 @@ def get_info_from_ssh_auth(line:str):
                
                     
                data['event_type'] ='ssh-autentification-attempt'
+               if result=='Failed':
+                   failed_hosts[host]=failed_hosts.get(host,0) +1
+                   data['Attempts:']=failed_hosts[host]
+                
                data['auth_method']=auth_method
                data['ip_source']=ip
                data['host']=host
                data['result']=result
+            
+               #in case of multiple failed attempts
+               if failed_hosts[host]>=3:
+                   print("the user "+data['host'] +" had 3 failed Attempts ")
+                   answer=''
+                   while answer!='Y' or answer!='N':
+                     answer=input("do you want to block the user from ssh (Y/N)")
+                     if (answer=='Y'):
+                       try:
+                           subprocess.run([ "sudo", "iptables", "-A", "INPUT",
+            "-p", "tcp", "--dport", "22",
+            "-s", ip, "-j", "DROP"],check=True)
+                           print(f"The ip {data['host']} has been blocked from ssh")
+                       except subprocess.CalledProcessError as e :
+                           print(f"Failed ",e)
+                     elif answer=='N':
+                         break
+                     else:
+                         print("please Select Y or N ")
+                         
                print(json.dumps(data,indent=2))
 #handles closing and opening sessions     
 def monitor_sessions(line:str):
@@ -90,12 +120,12 @@ def monitor_sessions(line:str):
                 by=""
             data['event_type']='session change'
             data['status']=status
+            
 
             data['user']=user
             data['by']=by 
 
             print(json.dumps(data))
-
 
 
 
