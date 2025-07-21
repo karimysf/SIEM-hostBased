@@ -1,5 +1,4 @@
 import psutil
-import time 
 from utils import is_sudo
 def scan_ports():
     if not is_sudo():

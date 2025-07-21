@@ -2,7 +2,7 @@ from loguru import logger
 from datetime import datetime
 import time
 import json
-from models.host.sudo_logs import format_sudo_command
+from sudo_logs import format_sudo_command
 import subprocess
 
 
