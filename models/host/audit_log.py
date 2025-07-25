@@ -1,5 +1,7 @@
 from ssh_monitor import read_logs_from_now
 import psutil
+import re
+import datetime
 data={}
 
 def log_audit():
@@ -14,6 +16,8 @@ def log_audit():
 
           if type=='SYSCALL':
                format_sysCall(line)
+          if type in ['USER_LOGIN','USER_LOGOUT']:
+               user_login_logout(line,type)
 
 
 
@@ -56,5 +60,29 @@ def format_sysCall(line:str):
     print(data)
 
 
+def user_login_logout(line: str,type:str):
+    # Check event type in line
+    
+    # Extract timestamp (assume it's at start like "2025-07-19T10:55:01.794829+01:00")
+    timestamp_str = line.split(' ')[0]
+    try:
+        timestamp = datetime.fromisoformat(timestamp_str)
+    except Exception:
+        timestamp = datetime.now()  # fallback
+    
+    # Extract key=value pairs
+    kv_pairs = re.findall(r'(\w+)=(".*?"|\S+)', line)
+    info = {k: v.strip('"') for k, v in kv_pairs}
+    
+    # Prepare result dictionary
+    result = {
+        'event_type': type,
+        'timestamp': timestamp.isoformat(),
+        'user': info.get('user', 'N/A'),
+        'uid': info.get('uid', 'N/A'),
+        'tty': info.get('tty', 'N/A'),
+        'ip': info.get('addr', 'N/A'),  
+    }
+    print(result)
 
 log_audit()
